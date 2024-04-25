@@ -1,0 +1,21 @@
+body {
+  background-color: #f8f9fa;
+}
+
+.container {
+  max-width: 800px;
+}
+
+.form-group label {
+  font-weight: bold;
+}
+
+#ruleOutput {
+  font-family: 'Courier New', Courier, monospace;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.rule-output {
+  min-height: 200px;
+}

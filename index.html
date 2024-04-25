@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>哪吒面板流量警告规则生成器</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.2/styles/default.min.css">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="./favicon.png">
+</head>
+
+<body>
+  <div class="container my-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h1 class="text-center">哪吒流量警告规则生成器</h1>
+      <div class="text-right">
+        <a href="https://dooo.ng" target="_blank" class="btn btn-outline-dark">
+          <i class="fa-solid fa-blog"></i> Doong博客
+        </a>
+        <a href="https://github.com/WizisCool/Nezha-Traffic-Alarm-Generator" target="_blank"
+          class="btn btn-outline-primary ml-2">
+          <i class="fab fa-github"></i> Give me a Star
+        </a>
+      </div>
+    </div>
+    <div class="form-group">
+      <label for="serverIds">服务器 ID (用逗号分隔):</label>
+      <input type="text" class="form-control" id="serverIds" placeholder="例如: 1,2,3" value="0">
+    </div>
+    <div class="form-group">
+      <label>统计周期开始时间:</label>
+      <div class="input-group mb-3">
+        <select class="form-control" id="cycleStartTimezone"></select>
+        <input type="text" class="form-control" id="cycleStartDate" placeholder="可选择日期" data-input>
+        <input type="text" class="form-control" id="cycleStartTime" placeholder="可选择时间" data-input>
+      </div>
+      <input type="text" class="form-control" id="cycleStart" readonly>
+    </div>
+    <div class="form-group">
+      <label for="trafficType">流量类型:</label>
+      <select class="form-control" id="trafficType">
+        <option value="transfer_in_cycle">入站流量</option>
+        <option value="transfer_out_cycle">出站流量</option>
+        <option value="transfer_all_cycle" selected>双向流量</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="cycleUnit">周期单位:</label>
+      <select class="form-control" id="cycleUnit">
+        <option value="hour">小时</option>
+        <option value="day">天</option>
+        <option value="week">周</option>
+        <option value="month" selected>月</option>
+        <option value="year">年</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="cycleInterval">周期间隔 (单位为选择的周期单位):</label>
+      <input type="number" class="form-control" id="cycleInterval" min="1" value="1">
+    </div>
+    <div class="form-group">
+      <label for="maxTraffic">流量上限:</label>
+      <div class="input-group">
+        <input type="number" class="form-control" id="maxTraffic" min="0" value="1" step="0.01">
+        <div class="input-group-append">
+          <select class="form-control" id="trafficUnit">
+            <option value="1024">KB</option>
+            <option value="1048576">MB</option>
+            <option value="1073741824" selected>GB</option>
+            <option value="1099511627776">TB</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <button class="btn btn-primary btn-block" id="generateRuleBtn">生成规则</button>
+    <div class="mt-4">
+      <label for="ruleOutput">生成的 JSON 规则:</label>
+      <div class="input-group">
+        <pre class="form-control rule-output"><code id="ruleOutput" class="json"></code></pre>
+        <div class="input-group-append">
+          <button class="btn btn-secondary" type="button" id="copyRuleBtn">
+            <i class="fas fa-copy"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Modal -->
+  <div class="modal fade" id="errorModal" tabindex="-1" role="dialog" aria-labelledby="errorModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="errorModalLabel">错误</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p id="errorMessage"></p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.33/moment-timezone-with-data.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.2/highlight.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.2/languages/json.min.js"></script>
+  <script src="script.js"></script>
+</body>
+
+</html>
