@@ -1,35 +1,27 @@
 $(document).ready(function () {
-  // 获取所有时区
   const allTimezones = moment.tz.names();
 
-  // 按 UTC 偏移量排序时区
   allTimezones.sort((a, b) => {
     const offsetA = moment.tz(a).utcOffset();
     const offsetB = moment.tz(b).utcOffset();
     return offsetA - offsetB;
   });
 
-  // 生成时区选项
   const timezoneOptions = allTimezones.map(timezone => {
     const offset = moment.tz(timezone).format('Z');
     return `<option value="${timezone}">UTC${offset} ${timezone}</option>`;
   }).join('');
 
-
   $('#cycleStartTimezone').html(timezoneOptions);
-
-  // 设置默认时区为 UTC+8 上海时间
   $('#cycleStartTimezone').val('Asia/Shanghai');
 
-  // 初始化日期选择器
-  const datePickr = flatpickr('#cycleStartDate', {
+  flatpickr('#cycleStartDate', {
     defaultDate: moment().startOf('month').toDate(),
     dateFormat: 'Y-m-d',
     onChange: updateCycleStart
   });
 
-  // 初始化时间选择器
-  const timePickr = flatpickr('#cycleStartTime', {
+  flatpickr('#cycleStartTime', {
     noCalendar: true,
     enableTime: true,
     dateFormat: 'H:i',
@@ -38,39 +30,55 @@ $(document).ready(function () {
     onChange: updateCycleStart
   });
 
-  // 页面加载时生成初始的 RFC3339 和 规则
   updateCycleStart();
+  bindAutoUpdate();
   generateRule();
 
-  // 更新统计周期开始时间
+  function bindAutoUpdate() {
+    $('#serverIds, #trafficType, #cycleUnit, #cycleInterval, #maxTraffic, #trafficUnit').on('input change', generateRule);
+    $('#cycleStartTimezone').on('change', updateCycleStart);
+  }
+
   function updateCycleStart() {
     const timezone = $('#cycleStartTimezone').val();
     const date = $('#cycleStartDate').val();
     const time = $('#cycleStartTime').val();
+
+    if (!timezone || !date || !time) {
+      $('#cycleStart').val('');
+      generateRule();
+      return;
+    }
+
     const formattedDate = moment.tz(`${date} ${time}`, timezone).format();
     $('#cycleStart').val(formattedDate);
     generateRule();
   }
 
-  // 防止用户编辑 RFC3339 格式时间
   $('#cycleStart').on('input', function () {
-    showErrorModal('请使用上方的时间选择器选择时间');
-    $(this).val(moment.tz($('#cycleStartDate').val() + ' ' + $('#cycleStartTime').val(), $('#cycleStartTimezone').val()).format());
+    $(this).val(moment.tz(
+      `${$('#cycleStartDate').val()} ${$('#cycleStartTime').val()}`,
+      $('#cycleStartTimezone').val()
+    ).format());
   });
 
-  // 生成规则按钮
   $('#generateRuleBtn').click(generateRule);
 
-  // 生成规则
   function generateRule() {
-    const serverIds = $('#serverIds').val().split(',').map(id => id.trim());
+    const serverIds = $('#serverIds').val()
+      .split(',')
+      .map(id => id.trim())
+      .filter(Boolean);
     const cycleStart = $('#cycleStart').val();
     const trafficType = $('#trafficType').val();
     const cycleUnit = $('#cycleUnit').val();
-    const cycleInterval = parseInt($('#cycleInterval').val());
-    const maxTraffic = $('#maxTraffic').val() * $('#trafficUnit').val();
+    const cycleInterval = parseInt($('#cycleInterval').val(), 10);
+    const maxTrafficInput = parseFloat($('#maxTraffic').val());
+    const trafficUnit = parseInt($('#trafficUnit').val(), 10);
+    const maxTraffic = maxTrafficInput * trafficUnit;
 
     if (!validateInput(serverIds, cycleStart, trafficType, cycleUnit, cycleInterval, maxTraffic)) {
+      renderOutput('// 请完善上方配置，JSON 规则会自动更新');
       return;
     }
 
@@ -87,69 +95,53 @@ $(document).ready(function () {
       }, {})
     }];
 
-    const ruleJson = JSON.stringify(rule, null, 2);
-    $('#ruleOutput').text(ruleJson);
-    hljs.highlightBlock(document.getElementById('ruleOutput'));
+    renderOutput(JSON.stringify(rule, null, 2));
   }
 
-  // 复制规则按钮
+  function renderOutput(content) {
+    const output = document.getElementById('ruleOutput');
+    output.textContent = content;
+    hljs.highlightElement(output);
+  }
+
   $('#copyRuleBtn').click(function () {
-    const ruleOutput = document.getElementById('ruleOutput');
-    const range = document.createRange();
-    range.selectNode(ruleOutput);
-    window.getSelection().removeAllRanges();
-    window.getSelection().addRange(range);
-    document.execCommand('copy');
-    window.getSelection().removeAllRanges();
-    showSuccessModal('JSON 规则已复制到剪贴板');
+    const content = document.getElementById('ruleOutput').textContent;
+    if (!content || content.startsWith('//')) {
+      showModal('请先完成配置并生成有效的 JSON 规则');
+      return;
+    }
+
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(content)
+        .then(() => showModal('JSON 规则已复制到剪贴板'))
+        .catch(() => fallbackCopy(content));
+      return;
+    }
+
+    fallbackCopy(content);
   });
 
-  // 输入验证
+  function fallbackCopy(content) {
+    const temp = document.createElement('textarea');
+    temp.value = content;
+    document.body.appendChild(temp);
+    temp.select();
+    document.execCommand('copy');
+    document.body.removeChild(temp);
+    showModal('JSON 规则已复制到剪贴板');
+  }
+
   function validateInput(serverIds, cycleStart, trafficType, cycleUnit, cycleInterval, maxTraffic) {
-    if (serverIds.length === 0 || (serverIds.length === 1 && serverIds[0] === '')) {
-      showErrorModal('请输入服务器 ID');
-      return false;
-    }
-
-    if (!cycleStart) {
-      showErrorModal('请选择统计周期开始时间');
-      return false;
-    }
-
-    if (!trafficType) {
-      showErrorModal('请选择流量类型');
-      return false;
-    }
-
-    if (!cycleUnit) {
-      showErrorModal('请选择周期单位');
-      return false;
-    }
-
-    if (isNaN(cycleInterval) || cycleInterval <= 0) {
-      showErrorModal('请输入有效的周期间隔 (大于 0 的数字)');
-      return false;
-    }
-
-    if (isNaN(maxTraffic) || maxTraffic <= 0) {
-      showErrorModal('请输入有效的流量上限 (大于 0 的数字)');
-      return false;
-    }
-
+    if (serverIds.length === 0) return false;
+    if (!cycleStart) return false;
+    if (!trafficType) return false;
+    if (!cycleUnit) return false;
+    if (isNaN(cycleInterval) || cycleInterval <= 0) return false;
+    if (isNaN(maxTraffic) || maxTraffic <= 0) return false;
     return true;
   }
 
-  // 时区选择器变更事件
-  $('#cycleStartTimezone').change(updateCycleStart);
-
-
-  function showErrorModal(message) {
-    $('#errorMessage').text(message);
-    $('#errorModal').modal('show');
-  }
-
-
-  function showSuccessModal(message) {
+  function showModal(message) {
     $('#errorMessage').text(message);
     $('#errorModal').modal('show');
   }

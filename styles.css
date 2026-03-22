@@ -17,5 +17,8 @@ body {
 }
 
 .rule-output {
-  min-height: 200px;
+  min-height: 320px;
+  max-height: 560px;
+  overflow: auto;
+  resize: vertical;
 }
