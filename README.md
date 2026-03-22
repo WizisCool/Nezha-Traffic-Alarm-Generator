@@ -4,9 +4,9 @@
 
 手动编写哪吒监控的流量告警 JSON 规则并不算难，但在实际配置时总归有些繁琐。这个项目把这件事做成了一个更直观的网页表单：填好参数，生成规则，复制粘贴到面板里即可。
 
-## 在线使用
+## Live Demo
 
-- https://wiziscool.github.io/Nezha-Traffic-Alarm-Generator/
+- [https://wiziscool.github.io/Nezha-Traffic-Alarm-Generator/](https://wiziscool.github.io/Nezha-Traffic-Alarm-Generator/)
 
 ## 这个工具可以做什么
 
@@ -17,17 +17,24 @@
 
 ## 使用方式
 
-1. 打开在线页面。
-2. 填写服务器 ID、统计周期、流量类型、周期单位、周期间隔和流量上限等参数。
-3. 点击“生成规则”按钮。
-4. 复制生成的 JSON 规则。
-5. 在哪吒监控面板的“告警”页面中新建告警规则，并将生成内容粘贴到规则输入框中。
+### 1. 直接使用 Live Demo
 
-## 适合在这些场景下使用
+打开在线页面：
 
-- 想快速生成一条可直接使用的流量告警规则
-- 不想反复手写或调整 JSON 配置
-- 需要给哪吒监控面板补一个更直观的规则生成入口
+- [https://wiziscool.github.io/Nezha-Traffic-Alarm-Generator/](https://wiziscool.github.io/Nezha-Traffic-Alarm-Generator/)
+
+填写参数后生成规则，并复制到哪吒监控面板中使用即可。
+
+### 2. 从源码部署
+
+克隆仓库后，直接打开 `index.html` 即可本地使用：
+
+```bash
+git clone https://github.com/WizisCool/Nezha-Traffic-Alarm-Generator.git
+cd Nezha-Traffic-Alarm-Generator
+```
+
+随后用浏览器打开 `index.html`。
 
 ## 技术栈
 
